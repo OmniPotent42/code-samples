@@ -36,6 +36,7 @@
     <h1>HouseMaster Code Samples</h1>
     <section>
       <h2>1. NodeJS</h2>
+      <p>This is a controller from a MEAN stack app that utilizes AWS. I have updated it to use ES6 syntax.</p>
       <pre>
         <code class="language-javascript">
 'use strict';
@@ -118,7 +119,7 @@ module.exports = {
                 res.status(500).send(err);
             } else {
                 //we are currently in the album, we need to find the picture object with the picId
-                let pos = album.pics.map(function(x) {
+                let pos = album.pics.map(x => {
                   console.log(x._id.toString());
                   return x._id.toString();
                 })
@@ -197,6 +198,7 @@ module.exports = {
     </section>
     <section>
       <h2>2. Angular2</h2>
+      <p>This is a component in Typescript from an Angular2 app.</p>
       <pre>
         <code class="language-typescript">
 import { Component, Input, Output, EventEmitter } from '@angular/core';
