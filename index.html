@@ -1,0 +1,296 @@
+<html>
+  <head>
+    <title>Code Examples for HouseMaster</title>
+    <link rel="stylesheet" type="text/css" href="prism.css">
+    <link href="https://fonts.googleapis.com/css?family=Zilla+Slab" rel="stylesheet">
+    <style>
+      h1 {
+        text-align: center;
+        font-size: 60px;
+        font-family: 'Zilla Slab', serif;
+      }
+      
+      h2 {
+        font-family: 'Zilla Slab', serif;
+        font-size: 40px;
+      }
+      
+      body {
+        background: #dbeeff;
+        padding: 20px;
+        font-family: Arial;
+      }
+      
+      pre {
+        max-height: 500px;
+        overflow-y: scroll;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>HouseMaster Code Samples</h1>
+    <section>
+      <h2>1. NodeJS</h2>
+      <pre>
+        <code class="language-javascript">
+'use strict';
+
+const AlbumModel = require("./../models/Album");
+const mongoose = require("mongoose");
+const aws = require("aws-sdk");
+const keys = require("./../config/keys");
+
+const bucketName = "preschoolmusical";
+
+aws.config.update({
+    accessKeyId: keys.key,
+    secretAccessKey: keys.secret,
+    region: "us-west-2"
+})
+
+let s3 = new aws.S3();
+
+module.exports = {
+    readAll: (req, res, next) => {
+        let query = {};
+        if (req.query.tag) {
+            query = {tags: req.query.tag};
+        }
+        AlbumModel.find(query, (err, result) => {
+            if (err) {
+                res.status(500).send(err);
+            } else {
+                res.send(result);
+            }
+        })
+    },
+    
+    readOne: (req, res, next) => {
+        AlbumModel.findById(req.params.id, (err, album) => {
+            if (err) {
+                res.status(500).send(err);
+            } else {
+                res.send(album);
+            }
+        })
+    },
+    
+    create: (req, res, next) => {
+        AlbumModel.create(req.body, (err, result) => {
+            if (err) {
+                res.status(500).send(err);
+            } else {
+                res.send(result);
+            }
+        })
+    },
+        
+    delete: (req, res, next) => {
+        AlbumModel.findByIdAndRemove(req.params.id, (err, result) => {
+            if (err) {
+                res.status(500).send(err);
+            } else {
+                res.send(result);
+            }
+        })
+    },
+    
+    addPic: function(req, res, next) {
+        AlbumModel.findById(req.params.id, (err, album) => {
+            if (err) {
+                res.status(500).send(err);
+            } else {
+                album.pics.push(req.body);
+                album.save();
+                res.send(album.pics[album.pics.length - 1]);
+            }
+        })
+    },
+    
+    deletePic: function(req, res, next) {
+        AlbumModel.findById(req.params.id, (err, album) => {
+            if (err) {
+                res.status(500).send(err);
+            } else {
+                //we are currently in the album, we need to find the picture object with the picId
+                let pos = album.pics.map(function(x) {
+                  console.log(x._id.toString());
+                  return x._id.toString();
+                })
+                .indexOf(req.params.picId);
+                
+                // console.log('deleting picture ', pos);
+                let deleted = album.pics.splice(pos, 1);
+                album.save();
+                res.send(deleted);
+            }
+        })
+    },
+    
+    upload: (req, res, next) => {
+        let buf = new Buffer(req.body.fileBody.replace(/^data:image\/\w+;base64,/,""), "base64");
+        
+        let params = {
+            Bucket: bucketName,
+            Key: req.body.fileName,
+            Body: buf,
+            ContentType: "image/" + req.body.fileName.substring(req.body.fileName.lastIndexOf(".")),
+        }
+        
+        s3.upload(params, (err, data) => {
+            if (err) {
+                // console.error(err);
+                return res.send(err);
+            } else {
+                // console.log("upload successful!");
+                return res.send(data);
+            }
+        })
+    },
+    
+    removeFromS3: (req, res, next) => {
+        let params = {
+            Bucket: bucketName,
+            Key: req.body.key
+        }
+        
+        s3.deleteObject(params, function(err, data) {
+            if (err) {
+                console.error(err);
+                res.send(err);
+            } else {
+            }
+            
+            next();
+        })
+    },
+    
+    removeMultipleFromS3: (req, res, next) => {
+        for (let i = 0; i < req.body.keys.length; i++) {
+            let currentKey = req.body.keys[i];
+            let params = {
+                Bucket: bucketName,
+                Key: currentKey
+            };
+            
+            s3.deleteObject(params, (err, data) => {
+                if (err) {
+                    console.error(err);
+                } else {
+                    console.log(data);
+                }
+            })
+        }
+    }
+}
+        </code>
+      </pre>
+      
+      <br>
+      From: <a href="https://github.com/OmniPotent42/preschool-musical">Preschool Musical</a>
+
+    </section>
+    <section>
+      <h2>2. Angular2</h2>
+      <pre>
+        <code class="language-typescript">
+import { Component, Input, Output, EventEmitter } from '@angular/core';
+
+import { UserService } from './user.service';
+import { UserState } from './user-state';
+import { Tab } from './tab';
+import { Stats } from './stats';
+
+@Component({
+  selector: 'app-total',
+  templateUrl: './total.component.html',
+  styleUrls: [ './total.component.css' ]
+})
+export class TotalComponent {
+  @Input() stats: Stats;
+  @Input() tabs: Tab[];
+  @Input() spent;
+  @Output() purchaseEvent = new EventEmitter();
+
+  stateName: string;
+  notSaved = true;
+   
+  baseStats: Stats = this.userService.currentUserState.baseStats;
+
+  allStates = this.userService.getAllSavedStates();
+
+  constructor(private userService: UserService) { }
+
+  loadState(state: UserState) {
+    /*for (let stat in this.stats) {
+      this.stats[stat] = 0;
+    }*/
+    
+    console.log(state);
+    
+    this.userService.currentUserState.baseStats = state.baseStats;
+    this.baseStats = state.baseStats;
+    console.log(this.userService.currentUserState.baseStats);
+    
+    const tabs = this.tabs;
+    for (let i = 0; i < tabs.length; i++) {
+      for (let j = 0; j < tabs[i].specialties.length; j++) {
+        const spec = tabs[i].specialties[j];
+        const items = state.purchasedItems;
+        const index = items.findIndex(x => x.name === spec.name);
+        //console.log(index);
+        this.purchaseEvent.emit({spec: spec, amt: 0 - spec.purchased, event: null});
+        if (index > -1) {
+          this.purchaseEvent.emit({spec: tabs[i].specialties[j], amt: items[index].amount, event: null});
+        }
+      }
+    }
+    this.stateName = state.name;
+    this.tabs = tabs;
+  }
+
+  saveState(name: string) {
+    if (!name) {
+      alert('You must fill out the build name field.');
+      return;
+    }
+
+    const tabs = this.tabs;
+    for (let i = 0; i < tabs.length; i++) {
+      for (let j = 0; j < tabs[i].specialties.length; j++) {
+        const obj: any = tabs[i].specialties[j];
+        this.userService.currentUserState.updateItems({name: obj.name, amount: obj.purchased});
+      }
+    }
+
+
+    const newState = this.userService.saveState(name);
+    this.notSaved = false;
+    if (newState) {
+      this.allStates.push(newState);
+    }
+  }
+
+  confirmDelete(state: UserState) {
+    const toDelete = confirm('Are you sure you want to delete this build?');
+    if (toDelete) {
+      this.userService.deleteState(state.name);
+      const index = this.allStates.findIndex(x => x.name === state.name);
+      this.allStates.splice(index, 1);
+    }
+  }
+}        
+        </code>
+      </pre>
+      
+      <br>
+      From: <a href="https://github.com/OmniPotent42/sp-calculator">SP Calculator</a>
+    </section>
+    <section>
+        <h2>PHP</h2>
+        <br>
+        From custom slider shortcode (WordPress)
+    </section>
+    <script src="prism.js"></script>
+  </body>
+</html>
