@@ -296,6 +296,95 @@ export class TotalComponent {
     <section>
         <h2>PHP</h2>
         <br>
+		<pre>
+		  <code class="language-php">
+// this shortcode sets up the structure of the content_slider
+// with arrows and containers
+// if arrows don’t display, you need to install FontAwesome
+// dependencies: html_element class by David Walsh
+
+// [content_slider]
+function content_slider_func($atts, $content = null) {
+	$a = (object) shortcode_atts( array(
+        	'autoswipe' => false,
+        	'arrows' => false,
+        	'dots' => false,
+			'interval' => 3000,
+			'animation' => 'slide',
+			'view' => 1
+    	), $atts );
+	
+	$item_count = substr_count ( $content, '[slider_item]' );
+	
+	// first, build the slider element
+	$slider = new html_element('div');
+	$slider->set('class', 'content-slider');
+	$slider->set('data-length', $item_count);
+	$slider->set('data-active-slide', 0);
+	$slider->set('data-animation', $a->animation);
+	$slider->set('data-interval', $a->interval);
+	$slider->set('data-view', $a->view);
+	if ($a->autoswipe) {
+		$slider->set('data-autoswipe');
+	}
+	if ($a->arrows) {
+		$slider->set('data-arrows');
+	}
+	if ($a->dots) {
+		$slider->set('dots');
+	}
+	
+	// now build the slide viewport
+	$viewport = new html_element('div');
+	$viewport->set('class', 'slide-viewport');
+	
+	// build the slides
+	$slides = new html_element('ul');
+	$slides->set('text', do_shortcode($content));
+	
+	// add the slides to the viewport
+	$viewport->set('text', $slides->build());
+	
+	// build the arrows
+	$arrows = new html_element('div');
+	$arrows->set('class', 'arrows');
+	
+	$arrows_inner = '<div class="arrow left"><i class="fa fa-angle-left" aria-hidden="true"></i></div><div class="arrow right"><i class="fa fa-angle-right" aria-hidden="true"></i></div>';
+	
+	$arrows->set('text', $arrows_inner);
+	
+	// build the dots
+	$dots = new html_element('div');
+	$dots->set('class', 'dots');
+	
+	$dots_inner = '';
+	
+	for ($i = 0; $i < $item_count; $i++) {
+		$dot = new html_element('div');
+		if ($i == 0) {
+			$dot->set('class', 'active');
+		}
+		$dots_inner .= $dot->build();
+	}
+	
+	$dots->set('text', $dots_inner);
+	
+	$slider->set('text', $viewport->build() . $arrows->build() . $dots->build());
+	
+	return $slider->build();
+}
+add_shortcode( 'content_slider', 'content_slider_func' );
+
+function content_slider_item_func($atts, $content = null) {
+	$item = new html_element('li');
+	$item->set('text', do_shortcode($content));
+	
+	return $item->build();
+}
+
+add_shortcode('slider_item', 'content_slider_item_func');
+		  </code>
+		</pre>
         From custom slider shortcode (WordPress)
     </section>
     <script src="prism.js"></script>
